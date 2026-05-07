@@ -1,23 +1,49 @@
+import json
+
 from lexico import identificar_tokens
-from sintactico import *
+from sintactico import Parser
+from semantico import AnalizadorSemantico, Generador3Direcciones
+
 
 codigo = """
-inicio
-    a = 10
-    b = 20
-    c = a + b * 2
-    si (c > 30) entonces
-        escribir(c)
-        d = c - 10
-    finsi
-    escribir(d)
-fin
+int x = 10;
+
+void test(int a) {
+    int y = a * 2;
+    {
+        float x = 5.5;
+        y = y + x;
+    }
+    x = y + 1;
+    escribir(z);
+}
 """
 
-parser_codigo = Parser(codigo)
-arbol_ast = parser_codigo.parsear()
 
-codigo_asm = arbol_ast.generarCodigo()
-print(codigo.asm)
+print("TOKENS")
+tokens = identificar_tokens(codigo)
+for t in tokens:
+    print(t)
 
-print(identificar_tokens(codigo))
+print("\nAST")
+parser = Parser(tokens)
+ast = parser.parsear()
+print(json.dumps(ast.a_dict(), indent=2, ensure_ascii=False))
+
+print("\nSEMANTICO")
+sem = AnalizadorSemantico()
+
+try:
+    sem.analizar(ast)
+except Exception as e:
+    print(e)
+
+print("\nHISTORIAL DE AMBITOS")
+sem.tabla.imprimir_resumen_final()
+
+print("\nC3D")
+gen = Generador3Direcciones()
+gen.generar(ast)
+
+for linea in gen.codigo:
+    print(linea)
